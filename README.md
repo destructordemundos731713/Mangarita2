@@ -1,72 +1,60 @@
-# 🛰️ Mangarita — NASA POWER Climate Explorer & Forecaster
+# Mangarita — NASA POWER Climate Explorer
 
-**Mangarita** is an interactive web application built for the **NASA Space Apps Challenge**. It transforms real satellite and meteorological observations from the **NASA POWER (Prediction Of Worldwide Energy Resources)** API into global comparative dashboards, coordinate-based exploration, and mathematical climate projections.
+Mangarita is a web application created for the **NASA Space Apps Challenge**. It downloads and analyzes real monthly satellite and meteorological data from the **NASA POWER API** (from 2021 to the present) to compare global climates, explore any coordinate on Earth, and calculate mathematical trend projections.
 
-🌐 **Live Web Demo:** [Click here to try Mangarita online](YOUR-LIVE-WEB-LINK-HERE) *(No installation required)*
-
----
-
-## ✨ Key Features
-
-* **Verified NASA Satellite Data (Zero Hallucinations):** Retrieves monthly meteorological observations from `2021` to the present directly from NASA's Langley Research Center (`power.larc.nasa.gov`), filtering out missing (`-999`) or annual summary records.
-* **Preloaded Global Catalog & Local Reserve (`reserva_nasa.json`):** Comes pre-seeded with **75 global locations** spanning the Americas, Europe, Africa, Asia, Oceania, and Antarctica. Every new coordinate searched by a user is automatically appended to the local JSON reserve. If NASA's API is unreachable, Mangarita falls back to the nearest saved location using Haversine great-circle distance.
-* **Dynamic Global Comparison Dashboard (Smart 9-Station Cap):**
-  * Initializes with 4 distinct climate benchmarks: *Alaska (Arctic)*, *Bogota (Equatorial)*, *Madrid (Mediterranean)*, and *Sydney (Southern Hem.)*.
-  * **Real-Time Learning:** Every coordinate queried in the search view is dynamically added to the main comparison dashboard via `/api/dashboard`.
-  * **Anti-Saturation Filter:** Limits the comparative view to a maximum of **9 simultaneous locations**. When full, it protects user-searched coordinates by retiring the oldest initial benchmark stations first, followed by FIFO rotation.
-* **Statistical Significance Testing:** Automatically computes net linear change (`2021–present`) across all tracked variables and runs a **Student's t-test** (`t > 2.01`, ~95% confidence) to distinguish statistically significant trends from normal seasonal noise.
-* **Dual Mathematical Projection Engines:**
-  1. **"See the future" (Server-Side Harmonic Regression):** Fits a linear trend plus annual and semi-annual seasonal cycles (`sin`/`cos` harmonics) via Ordinary Least Squares, plotting a **95% prediction interval** from `12` up to `60` months ahead while enforcing physical boundaries (e.g., humidity `0–100%`).
-  2. **"Predict future years" (100% In-Browser Projection):** Computes a `36`-month forecast directly in JavaScript using deseasonalized linear trends and monthly anomalies—requiring zero server calls or internet connectivity.
+**Live Web Demo:** [Open Mangarita in your browser](YOUR-LIVE-WEB-LINK-HERE)
 
 ---
 
-## 📊 Tracked Atmospheric & Climate Variables
+## How it works
 
-| Parameter Code | Variable Name | Unit | Physical Bounds Enforced |
-| :--- | :--- | :--- | :--- |
-| `T2M` | Atmospheric temperature | °C | Unbounded |
-| `RH2M` | Relative humidity (2 m) | % | `0.0` to `100.0` |
-| `WS10M` | Wind speed (10 m) | m/s | `≥ 0.0` |
-| `PS` | Surface pressure | kPa | `≥ 0.0` |
-| `PRECTOTCORR` | Precipitation rate | mm/day | `≥ 0.0` |
-| `ALLSKY_SFC_SW_DWN` | Solar downward flux | W/m² | `≥ 0.0` *(auto-converted from kWh/m²/day or MJ/m²/day)* |
+1. **Real NASA Data & Local Cache (`reserva_nasa.json`):**
+   Mangarita fetches real monthly records directly from `power.larc.nasa.gov` and saves them locally. It comes preloaded with 75 global locations. If there is no internet connection or the NASA API is down, the app keeps working offline using the saved reserve and finds the nearest available location using Haversine distance.
+
+2. **Dynamic Global Comparison (Up to 9 Locations):**
+   The main dashboard starts by comparing 4 distinct climate zones (*Alaska, Bogota, Madrid, and Sydney*). Every time you search for a new coordinate, it is automatically added to the comparison charts. To keep the charts readable, the dashboard holds a maximum of 9 locations: when full, it removes the oldest initial benchmark station first so your searched locations stay visible.
+
+3. **Two Future Projection Tools:**
+   - **See the future (Server-side):** Uses ordinary least squares (linear trend + annual and semi-annual sine/cosine cycles) to project up to 60 months ahead with a 95% prediction range, respecting physical limits (such as 0–100% for humidity).
+   - **Predict future years (In-browser):** Calculates a 36-month projection directly in JavaScript using the deseasonalized linear trend and monthly anomalies, working completely offline.
 
 ---
 
-## 🚀 How to Run Locally
+## Variables Tracked
 
-1. **Clone this repository:**
+- **T2M:** Atmospheric temperature (°C)
+- **RH2M:** Relative humidity at 2 m (%)
+- **WS10M:** Wind speed at 10 m (m/s)
+- **PS:** Surface pressure (kPa)
+- **PRECTOTCORR:** Precipitation rate (mm/day)
+- **ALLSKY_SFC_SW_DWN:** Solar downward flux (W/m²)
+
+---
+
+## Run it on your computer
+
+1. Clone the repository and enter the folder:
    ```bash
    git clone https://github.com
    cd YOUR-REPO-NAME
    ```
 
-2. **Install dependencies:**
+2. Install the required libraries:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the application:**
+3. Start the program:
    ```bash
    python mangarita2.py
    ```
-   *(Opens automatically in your default browser at `http://127.0.0`)*
+   Your browser will open automatically at `http://127.0.0`.
 
-### Command-Line Options
-* `python mangarita2.py --no-download` — Starts immediately using only `reserva_nasa.json` without querying NASA on startup.
-* `python mangarita2.py --update` — Re-downloads and refreshes all catalog and saved locations from NASA POWER.
-
----
-
-## ☁️ Cloud Deployment Architecture
-Mangarita is cloud-ready out of the box:
-* Binds to `0.0.0.0` and dynamically reads the `PORT` environment variable (compatible with **Render**, **Hugging Face Spaces**, and **Railway**).
-* Automatically detects cloud environments (`PORT` present) to suppress local browser launches and runs background catalog synchronization in a non-blocking daemon thread when `reserva_nasa.json` is already populated.
+### Extra options
+- `python mangarita2.py --no-download` — Runs immediately using only the local `reserva_nasa.json` file.
+- `python mangarita2.py --update` — Re-downloads the catalog from NASA to get the latest available months.
 
 ---
 
-## 🛠️ Tech Stack
-* **Backend:** Python 3 (`http.server.ThreadingHTTPServer`, `threading`, `requests`)
-* **Math & Data Processing:** `NumPy`, `Pandas` (Ordinary Least Squares, Harmonic Regression, Haversine Distance, Student's t-test)
-* **Frontend & Visualization:** Vanilla HTML5/CSS3/JS, Animated SVG Mascot, `Plotly.js`
+## Built with
+Python (`http.server`, `requests`), `NumPy`, `Pandas`, `Plotly`, and vanilla HTML/CSS/JavaScript.
